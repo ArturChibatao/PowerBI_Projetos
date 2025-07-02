@@ -1,0 +1,3 @@
+2025-07-02 16:25:32,513 - INFO - INICIANDO PROCESSAMENTO DO PLANNER
+2025-07-02 16:25:32,514 - ERROR - Arquivo de entrada não encontrado: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\inputs\TarefasPlanner_Junho.xlsx
+2025-07-02 16:25:32,514 - ERROR - Validação de caminhos falhou. Encerrando processamento.

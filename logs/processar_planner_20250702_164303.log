@@ -1,0 +1,33 @@
+2025-07-02 16:43:03,748 - INFO - INICIANDO PROCESSAMENTO DO PLANNER
+2025-07-02 16:43:03,770 - INFO - Arquivo encontrado: Gerenciamento de Projetos .xlsx
+2025-07-02 16:43:03,772 - INFO - Diretório de saída criado/validado: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\outputs
+2025-07-02 16:43:03,772 - INFO - Iniciando pipeline de processamento
+2025-07-02 16:43:04,204 - INFO - Arquivo carregado: 61 linhas, 18 colunas
+2025-07-02 16:43:04,205 - INFO - Validação de colunas: OK
+2025-07-02 16:43:04,208 - INFO - Aplicando transformações...
+2025-07-02 16:43:04,210 - INFO - Removendo datas de 33 registros com buckets inválidos
+2025-07-02 16:43:04,210 - INFO -   - 33 datas de início removidas
+2025-07-02 16:43:04,211 - INFO -   - 33 datas de entrega removidas
+2025-07-02 16:43:04,211 - INFO - Buckets com datas removidas:
+2025-07-02 16:43:04,212 - INFO -   - 'Backlog': 17 registros
+2025-07-02 16:43:04,212 - INFO -   - 'A fazer': 10 registros
+2025-07-02 16:43:04,212 - INFO -   - 'Concluidas': 6 registros
+2025-07-02 16:43:04,213 - INFO - Convertendo 4 colunas de data
+2025-07-02 16:43:04,216 - WARNING - Data de início: 20 datas falharam no parsing
+2025-07-02 16:43:04,218 - WARNING - Data de entrega: 11 datas falharam no parsing
+2025-07-02 16:43:04,219 - WARNING - Data de conclusão: 41 datas falharam no parsing
+2025-07-02 16:43:04,221 - INFO - Preenchendo data de início para 10 registros
+2025-07-02 16:43:04,222 - INFO - Regra: Data de início = Data de entrega - 20 dias
+2025-07-02 16:43:04,228 - INFO - Distribuição por bucket:
+2025-07-02 16:43:04,230 - INFO -   execução: 19 registros
+2025-07-02 16:43:04,231 - INFO -   backlog: 17 registros
+2025-07-02 16:43:04,231 - INFO -   a fazer: 10 registros
+2025-07-02 16:43:04,231 - INFO -   aguardando validação: 9 registros
+2025-07-02 16:43:04,231 - INFO -   concluidas: 6 registros
+2025-07-02 16:43:04,232 - INFO -   Data de início: 18/61 preenchidas (29.5%)
+2025-07-02 16:43:04,232 - INFO -   Data de entrega: 17/61 preenchidas (27.9%)
+2025-07-02 16:43:04,232 - INFO -   Data de conclusão: 20/61 preenchidas (32.8%)
+2025-07-02 16:43:04,232 - INFO - Total de registros processados: 61
+2025-07-02 16:43:04,280 - INFO - Arquivo salvo com sucesso: TarefasPlanner_20250702_164304.xlsx
+2025-07-02 16:43:04,280 - INFO - Pipeline concluído com sucesso
+2025-07-02 16:43:04,280 - INFO - PROCESSAMENTO CONCLUÍDO COM SUCESSO!

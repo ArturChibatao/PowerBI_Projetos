@@ -1,0 +1,54 @@
+2025-07-02 14:17:15,151 - INFO - Log sendo salvo em: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\logs\processar_planner_20250702_141715.log
+2025-07-02 14:17:15,151 - INFO - ============================================================
+2025-07-02 14:17:15,151 - INFO - INICIANDO PROCESSAMENTO DO PLANNER
+2025-07-02 14:17:15,152 - INFO - Python executado de: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\env\Scripts\python.exe
+2025-07-02 14:17:15,152 - INFO - ============================================================
+2025-07-02 14:17:15,152 - INFO - Arquivo de entrada: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\inputs\TarefasPlanner_Junho.xlsx
+2025-07-02 14:17:15,152 - INFO - Diretório de saída: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\outputs
+2025-07-02 14:17:15,152 - INFO - Diretório de logs: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\logs
+2025-07-02 14:17:15,152 - INFO - Diretório de saída criado/validado: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\outputs
+2025-07-02 14:17:15,152 - INFO - Iniciando pipeline de processamento...
+2025-07-02 14:17:15,153 - INFO - ==================================================
+2025-07-02 14:17:15,153 - INFO - INICIANDO PIPELINE DE PROCESSAMENTO
+2025-07-02 14:17:15,153 - INFO - ==================================================
+2025-07-02 14:17:15,153 - INFO - Carregando arquivo: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\inputs\TarefasPlanner_Junho.xlsx
+2025-07-02 14:17:15,672 - INFO - Arquivo carregado: 57 linhas, 18 colunas
+2025-07-02 14:17:15,675 - INFO - Validação de colunas: OK
+2025-07-02 14:17:15,681 - INFO - Aplicando transformações...
+2025-07-02 14:17:15,682 - INFO - Valores padrão aplicados: {'Atribuído': 'Michael Oneil; Artur Almeida'}
+2025-07-02 14:17:15,684 - INFO - Zerando datas para 26 registros em buckets inativos
+2025-07-02 14:17:15,685 - INFO - Iniciando parsing de 4 colunas de data
+2025-07-02 14:17:15,686 - INFO - Processando coluna: Data de criação
+2025-07-02 14:17:15,698 - INFO - Coluna Data de criação: 57 sucessos, 0 falhas (100.0% sucesso)
+2025-07-02 14:17:15,699 - INFO - Processando coluna: Data de início
+2025-07-02 14:17:15,701 - INFO - Coluna Data de início: 7 sucessos, 24 falhas (22.6% sucesso)
+2025-07-02 14:17:15,702 - INFO - Processando coluna: Data de entrega
+2025-07-02 14:17:15,704 - INFO - Coluna Data de entrega: 17 sucessos, 14 falhas (54.8% sucesso)
+2025-07-02 14:17:15,704 - INFO - Processando coluna: Data de conclusão
+2025-07-02 14:17:15,707 - INFO - Coluna Data de conclusão: 16 sucessos, 15 falhas (51.6% sucesso)
+2025-07-02 14:17:15,707 - INFO - Parsing concluído: 97/150 datas convertidas (64.7% sucesso)
+2025-07-02 14:17:15,709 - INFO - Preenchendo data de início para 12 registros
+2025-07-02 14:17:15,709 - INFO - Regra: Data de início = Data de entrega - 20 dias
+2025-07-02 14:17:15,716 - INFO - Analisando problemas de parsing para bucket: execução
+2025-07-02 14:17:15,718 - INFO - Registros em 'execução': 17
+2025-07-02 14:17:15,718 - INFO - Problemas de parsing encontrados: 0
+2025-07-02 14:17:15,718 - INFO - ✅ Nenhum problema de parsing encontrado!
+2025-07-02 14:17:15,719 - INFO - Taxa de sucesso no parsing para 'execução': 100.0%
+2025-07-02 14:17:15,721 - INFO - Distribuição por bucket:
+2025-07-02 14:17:15,721 - INFO -   execução: 17 registros
+2025-07-02 14:17:15,721 - INFO -   backlog: 16 registros
+2025-07-02 14:17:15,721 - INFO -   a fazer: 10 registros
+2025-07-02 14:17:15,721 - INFO -   aguardando validação: 9 registros
+2025-07-02 14:17:15,722 - INFO -   concluidas: 5 registros
+2025-07-02 14:17:15,722 - INFO -   Data de início: 19/57 preenchidas (33.3%)
+2025-07-02 14:17:15,722 - INFO -   Data de entrega: 17/57 preenchidas (29.8%)
+2025-07-02 14:17:15,723 - INFO -   Data de conclusão: 16/57 preenchidas (28.1%)
+2025-07-02 14:17:15,723 - INFO - Total de registros processados: 57
+2025-07-02 14:17:15,779 - INFO - Arquivo salvo com sucesso: C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos\outputs\TarefasPlanner_20250702_141715.xlsx
+2025-07-02 14:17:15,780 - INFO - Registros salvos: 57
+2025-07-02 14:17:15,780 - INFO - ==================================================
+2025-07-02 14:17:15,780 - INFO - PIPELINE CONCLUÍDO COM SUCESSO
+2025-07-02 14:17:15,780 - INFO - ==================================================
+2025-07-02 14:17:15,781 - INFO - ============================================================
+2025-07-02 14:17:15,781 - INFO - PROCESSAMENTO CONCLUÍDO COM SUCESSO!
+2025-07-02 14:17:15,781 - INFO - ============================================================
