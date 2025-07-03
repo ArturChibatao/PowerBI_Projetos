@@ -1,3 +1,10 @@
+"""
+Processador principal para arquivos do Microsoft Planner.
+
+Este script coordena o processamento de arquivos Excel exportados do Planner,
+aplicando transformações e gerando arquivos de saída organizados.
+"""
+
 import sys
 import logging
 import pandas as pd
@@ -5,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 import pipeline
+import test_validation
 
 
 def setup_logging(base_dir: Path) -> None:
@@ -126,7 +134,7 @@ def get_config() -> dict:
     }
 
 
-def main(input_filename: Optional[str] = None) -> None:
+def main(input_filename: Optional[str] = None, run_validation: bool = True) -> None:
     """
     Função principal do processamento.
     
@@ -135,6 +143,7 @@ def main(input_filename: Optional[str] = None) -> None:
                        Se não fornecido, busca automaticamente por:
                        - "Gerenciamento de Projetos*.xlsx"
                        - "TarefasPlanner*.xlsx"
+        run_validation: Se True, executa validação após processamento
     """
     # Carregar configuração primeiro
     config = get_config()
@@ -167,7 +176,17 @@ def main(input_filename: Optional[str] = None) -> None:
             sys.exit(1)
         
         # Executar pipeline
-        pipeline.main(input_path=input_path, output_dir=output_dir)
+        output_file = pipeline.main(input_path=input_path, output_dir=output_dir)
+        
+        # Executar validação se solicitado
+        if run_validation and output_file:
+            logging.info("Iniciando validação dos resultados...")
+            validation_passed = test_validation.main(input_path, output_file)
+            
+            if validation_passed:
+                logging.info("✅ Validação concluída: Todos os testes críticos passaram")
+            else:
+                logging.warning("⚠️ Validação detectou problemas - revisar logs acima")
         
         logging.info("PROCESSAMENTO CONCLUÍDO COM SUCESSO!")
         
@@ -181,28 +200,59 @@ def main(input_filename: Optional[str] = None) -> None:
 
 
 if __name__ == "__main__":
-    # Permitir especificar arquivo via linha de comando
-    input_file = sys.argv[1] if len(sys.argv) > 1 else None
+    # Processar argumentos da linha de comando
+    import argparse
     
-    if input_file == "--help" or input_file == "-h":
-        print("="*60)
-        print("PROCESSADOR DE ARQUIVOS DO PLANNER")
-        print("="*60)
-        print()
-        print("USO:")
-        print("  python processar_planner.py                    # Busca automática")
-        print("  python processar_planner.py arquivo.xlsx       # Arquivo específico")
-        print()
-        print("BUSCA AUTOMÁTICA:")
-        print("  O script procura automaticamente por:")
-        print("  - Gerenciamento de Projetos*.xlsx")
-        print("  - TarefasPlanner*.xlsx")
-        print("  - Usa sempre o arquivo mais recente")
-        print()
-        print("EXEMPLOS:")
-        print("  python processar_planner.py")
-        print("  python processar_planner.py \"Gerenciamento de Projetos (2).xlsx\"")
-        print("="*60)
+    parser = argparse.ArgumentParser(description="Processador de arquivos do Planner")
+    parser.add_argument("arquivo", nargs="?", help="Nome do arquivo específico (opcional)")
+    parser.add_argument("--no-validation", action="store_true", 
+                       help="Pular validação após processamento")
+    parser.add_argument("--help-extended", action="store_true",
+                       help="Mostrar ajuda detalhada")
+    
+    # Parse argumentos ou usar sys.argv se preferir o método antigo
+    if len(sys.argv) > 1 and sys.argv[1] in ["--help", "-h", "--help-extended"]:
+        if "--help-extended" in sys.argv:
+            print("="*60)
+            print("PROCESSADOR DE ARQUIVOS DO PLANNER")
+            print("="*60)
+            print()
+            print("USO:")
+            print("  python processar_planner.py                    # Busca automática + validação")
+            print("  python processar_planner.py arquivo.xlsx       # Arquivo específico + validação")
+            print("  python processar_planner.py --no-validation    # Sem validação")
+            print("  python processar_planner.py arquivo.xlsx --no-validation")
+            print()
+            print("BUSCA AUTOMÁTICA:")
+            print("  O script procura automaticamente por:")
+            print("  - Gerenciamento de Projetos*.xlsx")
+            print("  - TarefasPlanner*.xlsx")
+            print("  - Usa sempre o arquivo mais recente")
+            print()
+            print("VALIDAÇÃO:")
+            print("  Por padrão, executa validação completa:")
+            print("  - Verifica se dados importantes foram perdidos")
+            print("  - Valida regras de bucket")
+            print("  - Confirma integridade dos dados")
+            print("  - Gera relatório detalhado")
+            print()
+            print("EXEMPLOS:")
+            print("  python processar_planner.py")
+            print("  python processar_planner.py \"Gerenciamento de Projetos (2).xlsx\"")
+            print("  python processar_planner.py --no-validation")
+            print("="*60)
+        else:
+            parser.print_help()
         sys.exit(0)
     
-    main(input_filename=input_file)
+    # Método simples para compatibilidade
+    input_file = None
+    run_validation = True
+    
+    for arg in sys.argv[1:]:
+        if arg == "--no-validation":
+            run_validation = False
+        elif not arg.startswith("--"):
+            input_file = arg
+    
+    main(input_filename=input_file, run_validation=run_validation)

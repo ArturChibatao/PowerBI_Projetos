@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Pipeline de processamento para dados do Microsoft Planner.
 
@@ -37,7 +38,7 @@ class PlannerConfig:
     INACTIVE_BUCKETS = ['backlog', 'a fazer']
     
     # Buckets que PODEM ter datas de início e entrega
-    ACTIVE_BUCKETS = ['execução', 'aguardando validação', 'concluídos']
+    ACTIVE_BUCKETS = ['execução', 'aguardando validação', 'concluídos', 'concluido', 'concluida', 'concluidas']
     
     # Colunas de data para processamento
     DATE_COLUMNS = [
@@ -171,19 +172,55 @@ def validate_dates_by_bucket(df: pd.DataFrame,
         logging.warning(f"Coluna '{bucket_col}' não encontrada. Pulando validação de datas por bucket.")
         return df
     
+    # PRIMEIRO: Log dos buckets únicos encontrados para debug
+    unique_buckets = df[bucket_col].dropna().unique()
+    logging.info(f"Buckets encontrados no arquivo: {list(unique_buckets)}")
+    
     # Normalizar nomes dos buckets para comparação
     df_copy = df.copy()
     df_copy['bucket_normalized'] = (df_copy[bucket_col]
                                    .str.strip()
                                    .str.lower()
-                                   .str.replace('ç', 'c')  # normalizar acentos
-                                   .str.replace('ã', 'a'))
+                                   .str.replace('ç', 'c')
+                                   .str.replace('ã', 'a')
+                                   .str.replace('í', 'i')
+                                   .str.replace('ú', 'u')
+                                   .str.replace('õ', 'o')
+                                   .str.replace('ê', 'e')
+                                   .str.replace('é', 'e')
+                                   .str.replace('á', 'a')
+                                   .str.replace('ó', 'o'))
+    
+    # Normalizar buckets permitidos também
+    allowed_buckets_normalized = []
+    for bucket in PlannerConfig.ACTIVE_BUCKETS:
+        normalized = (bucket.lower()
+                     .replace('ç', 'c')
+                     .replace('ã', 'a') 
+                     .replace('í', 'i')
+                     .replace('ú', 'u')
+                     .replace('õ', 'o')
+                     .replace('ê', 'e')
+                     .replace('é', 'e')
+                     .replace('á', 'a')
+                     .replace('ó', 'o'))
+        allowed_buckets_normalized.append(normalized)
+    
+    logging.info(f"Buckets permitidos (normalizados): {allowed_buckets_normalized}")
+    
+    # Log dos buckets normalizados encontrados
+    unique_normalized = df_copy['bucket_normalized'].dropna().unique()
+    logging.info(f"Buckets encontrados (normalizados): {list(unique_normalized)}")
     
     # Identificar buckets que NÃO podem ter datas
-    allowed_buckets_normalized = [bucket.lower().replace('ç', 'c').replace('ã', 'a') 
-                                 for bucket in PlannerConfig.ACTIVE_BUCKETS]
-    
     mask_invalid_bucket = ~df_copy['bucket_normalized'].isin(allowed_buckets_normalized)
+    
+    # Log detalhado dos buckets que serão afetados
+    invalid_buckets_detail = df_copy.loc[mask_invalid_bucket, [bucket_col, 'bucket_normalized']].drop_duplicates()
+    if len(invalid_buckets_detail) > 0:
+        logging.info("Buckets que terão datas removidas:")
+        for _, row in invalid_buckets_detail.iterrows():
+            logging.info(f"  Original: '{row[bucket_col]}' -> Normalizado: '{row['bucket_normalized']}'")
     
     # Contar registros que serão afetados
     invalid_with_start = mask_invalid_bucket & df_copy[start_col].notna()
@@ -194,7 +231,7 @@ def validate_dates_by_bucket(df: pd.DataFrame,
     total_invalid_buckets = mask_invalid_bucket.sum()
     
     if start_removals > 0 or due_removals > 0:
-        logging.info(f"Removendo datas de {total_invalid_buckets} registros com buckets inválidos")
+        logging.info(f"Removendo datas de {total_invalid_buckets} registros com buckets não permitidos")
         logging.info(f"  - {start_removals} datas de início removidas")
         logging.info(f"  - {due_removals} datas de entrega removidas")
         
@@ -203,6 +240,8 @@ def validate_dates_by_bucket(df: pd.DataFrame,
         logging.info("Buckets com datas removidas:")
         for bucket, count in invalid_buckets.items():
             logging.info(f"  - '{bucket}': {count} registros")
+    else:
+        logging.info("✅ Nenhuma data removida - todos os buckets estão permitidos")
     
     # Remover as datas dos buckets inválidos
     df_copy.loc[mask_invalid_bucket, start_col] = pd.NaT
@@ -210,11 +249,6 @@ def validate_dates_by_bucket(df: pd.DataFrame,
     
     # Remover coluna temporária
     df_copy = df_copy.drop(columns=['bucket_normalized'])
-    
-    # Estatísticas finais
-    valid_buckets = total_invalid_buckets == 0
-    if valid_buckets:
-        logging.info("✅ Todos os buckets estão nos status permitidos para datas")
     
     return df_copy
 
@@ -371,13 +405,16 @@ def save_dataframe(df: pd.DataFrame, output_path: Path) -> None:
         raise
 
 
-def main(input_path: Path, output_dir: Path) -> None:
+def main(input_path: Path, output_dir: Path) -> Optional[Path]:
     """
     Função principal do pipeline de processamento.
     
     Args:
         input_path: Caminho do arquivo de entrada
         output_dir: Diretório de saída
+        
+    Returns:
+        Caminho do arquivo de saída gerado ou None em caso de erro
         
     Raises:
         Various exceptions relacionadas ao processamento
@@ -423,12 +460,16 @@ def main(input_path: Path, output_dir: Path) -> None:
                   due_parsed_col='Data de entrega'
               ))
         
+        # 6. Estatísticas e logs
         log_processing_stats(df)
         
+        # 7. Salvamento
         output_path = generate_output_filename(output_dir)
         save_dataframe(df, output_path)
         
         logging.info("Pipeline concluído com sucesso")
+        
+        return output_path
         
     except Exception as e:
         logging.error(f"Erro no pipeline: {e}")
