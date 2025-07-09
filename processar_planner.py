@@ -124,7 +124,7 @@ def get_config() -> dict:
     Returns:
         Dicionário com os caminhos configurados
     """
-    base_dir = Path(r"C:\Users\artur.almeida\Documents\progs\PowerBi_Projetos")
+    base_dir = Path(r"C:\Users\artur.almeida\OneDrive - Chibatão Navegação e Comércio Ltda\Documentos\progs\PowerBI_Projetos")
     
     return {
         'base_dir': base_dir,

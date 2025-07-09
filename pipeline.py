@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Pipeline de processamento para dados do Microsoft Planner.
 
@@ -35,7 +34,7 @@ class PlannerConfig:
     }
     
     # Buckets que devem ter datas zeradas
-    INACTIVE_BUCKETS = ['backlog', 'a fazer']
+    INACTIVE_BUCKETS = ['backlog', 'pendente']  # Mudança: 'a fazer' -> 'pendente'
     
     # Buckets que PODEM ter datas de início e entrega
     ACTIVE_BUCKETS = ['execução', 'aguardando validação', 'concluídos', 'concluido', 'concluida', 'concluidas']
@@ -111,6 +110,50 @@ def validate_required_columns(df: pd.DataFrame) -> None:
     logging.info("Validação de colunas: OK")
 
 
+def normalize_bucket_values(df: pd.DataFrame, bucket_col: str = 'Bucket') -> pd.DataFrame:
+    """
+    Normaliza e padroniza valores da coluna de bucket.
+    
+    Args:
+        df: DataFrame para processar
+        bucket_col: Nome da coluna de bucket
+        
+    Returns:
+        DataFrame com valores de bucket normalizados
+    """
+    if bucket_col not in df.columns:
+        logging.warning(f"Coluna '{bucket_col}' não encontrada - pulando normalização de buckets")
+        return df
+    
+    df_copy = df.copy()
+    
+    # Mapeamento de valores antigos para novos
+    bucket_mapping = {
+        'A fazer': 'Pendente',
+        'a fazer': 'Pendente',
+        'A FAZER': 'Pendente',
+        'pendente': 'Pendente',
+        'PENDENTE': 'Pendente'
+    }
+    
+    # Contar quantos registros serão afetados
+    changes_count = 0
+    for old_value, new_value in bucket_mapping.items():
+        mask = df_copy[bucket_col].astype(str).str.strip() == old_value
+        affected = mask.sum()
+        if affected > 0:
+            df_copy.loc[mask, bucket_col] = new_value
+            changes_count += affected
+            logging.info(f"Renomeado '{old_value}' → '{new_value}' ({affected} registros)")
+    
+    if changes_count == 0:
+        logging.info("✅ Nenhum bucket precisou ser renomeado")
+    else:
+        logging.info(f"✅ Total de {changes_count} registros com buckets renomeados")
+    
+    return df_copy
+
+
 def clean_string_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Limpa colunas de texto removendo espaços extras.
@@ -140,13 +183,48 @@ def fill_default_values(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame com valores padrão aplicados
     """
-    fill_values = {
-        'Atribuído': PlannerConfig.DEFAULT_ASSIGNEE
-    }
+    df_copy = df.copy()
     
-    df = df.fillna(fill_values)
+    # Verificar se coluna 'Atribuído' existe
+    if 'Atribuído' not in df_copy.columns:
+        logging.warning("Coluna 'Atribuído' não encontrada - pulando preenchimento")
+        return df_copy
     
-    return df
+    # Contar valores vazios antes do preenchimento
+    empty_before = df_copy['Atribuído'].isna().sum()
+    
+    # Também considerar strings vazias e "nan"
+    empty_strings = (df_copy['Atribuído'].astype(str).str.strip() == '').sum()
+    nan_strings = (df_copy['Atribuído'].astype(str).str.lower() == 'nan').sum()
+    
+    total_empty = empty_before + empty_strings + nan_strings
+    
+    if total_empty > 0:
+        logging.info(f"Preenchendo {total_empty} campos vazios na coluna 'Atribuído'")
+        
+        # Preencher valores nulos
+        df_copy['Atribuído'] = df_copy['Atribuído'].fillna(PlannerConfig.DEFAULT_ASSIGNEE)
+        
+        # Preencher strings vazias
+        mask_empty_strings = df_copy['Atribuído'].astype(str).str.strip() == ''
+        df_copy.loc[mask_empty_strings, 'Atribuído'] = PlannerConfig.DEFAULT_ASSIGNEE
+        
+        # Preencher "nan" strings
+        mask_nan_strings = df_copy['Atribuído'].astype(str).str.lower() == 'nan'
+        df_copy.loc[mask_nan_strings, 'Atribuído'] = PlannerConfig.DEFAULT_ASSIGNEE
+        
+        # Verificar resultado
+        empty_after = df_copy['Atribuído'].isna().sum()
+        remaining_empty = (df_copy['Atribuído'].astype(str).str.strip() == '').sum()
+        
+        if empty_after == 0 and remaining_empty == 0:
+            logging.info(f"✅ Todos os {total_empty} campos preenchidos com: '{PlannerConfig.DEFAULT_ASSIGNEE}'")
+        else:
+            logging.warning(f"⚠️ Ainda restam {empty_after + remaining_empty} campos vazios")
+    else:
+        logging.info("✅ Coluna 'Atribuído' já está completamente preenchida")
+    
+    return df_copy
 
 
 def validate_dates_by_bucket(df: pd.DataFrame, 
@@ -368,6 +446,17 @@ def log_processing_stats(df: pd.DataFrame) -> None:
             filled_count = df[col].notna().sum()
             logging.info(f"  {col}: {filled_count}/{total_rows} preenchidas ({filled_count/total_rows*100:.1f}%)")
     
+    # Estatísticas da coluna Atribuído
+    if 'Atribuído' in df.columns:
+        assigned_filled = df['Atribuído'].notna().sum()
+        empty_strings = (df['Atribuído'].astype(str).str.strip() == '').sum()
+        effective_filled = assigned_filled - empty_strings
+        
+        logging.info(f"  Atribuído: {effective_filled}/{total_rows} preenchidos ({effective_filled/total_rows*100:.1f}%)")
+        
+        if effective_filled < total_rows:
+            logging.warning(f"⚠️ {total_rows - effective_filled} registros ainda sem atribuição")
+    
     logging.info(f"Total de registros processados: {total_rows}")
 
 
@@ -431,10 +520,13 @@ def main(input_path: Path, output_dir: Path) -> Optional[Path]:
         # 3. Limpeza inicial
         df = clean_string_columns(df)
         
-        # 4. Backup para debug
+        # 4. Normalizar valores de bucket
+        df = normalize_bucket_values(df)
+        
+        # 5. Backup para debug
         df = create_backup_columns(df)
         
-        # 5. Pipeline de transformações usando method chaining
+        # 6. Pipeline de transformações usando method chaining
         logging.info("Aplicando transformações...")
         
         df = (df
@@ -460,10 +552,10 @@ def main(input_path: Path, output_dir: Path) -> Optional[Path]:
                   due_parsed_col='Data de entrega'
               ))
         
-        # 6. Estatísticas e logs
+        # 7. Estatísticas e logs
         log_processing_stats(df)
         
-        # 7. Salvamento
+        # 8. Salvamento
         output_path = generate_output_filename(output_dir)
         save_dataframe(df, output_path)
         

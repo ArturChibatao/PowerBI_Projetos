@@ -1,0 +1,73 @@
+2025-07-09 13:55:31,915 - INFO - INICIANDO PROCESSAMENTO DO PLANNER
+2025-07-09 13:55:31,917 - INFO - Arquivo encontrado: Gerenciamento de Projetos .xlsx
+2025-07-09 13:55:31,917 - INFO - Diretório de saída criado/validado: C:\Users\artur.almeida\OneDrive - Chibatão Navegação e Comércio Ltda\Documentos\progs\PowerBI_Projetos\outputs
+2025-07-09 13:55:31,917 - INFO - Iniciando pipeline de processamento
+2025-07-09 13:55:32,357 - INFO - Arquivo carregado: 74 linhas, 18 colunas
+2025-07-09 13:55:32,357 - INFO - Validação de colunas: OK
+2025-07-09 13:55:32,361 - INFO - ✅ Nenhum bucket precisou ser renomeado
+2025-07-09 13:55:32,363 - INFO - Aplicando transformações...
+2025-07-09 13:55:32,364 - INFO - Preenchendo 5 campos vazios na coluna 'Atribuído'
+2025-07-09 13:55:32,365 - INFO - ✅ Todos os 5 campos preenchidos com: 'Michael Oneil; Artur Almeida'
+2025-07-09 13:55:32,366 - INFO - Buckets encontrados no arquivo: ['Execução', 'Pendentes', 'Backlog', 'Concluidas', 'Aguardando validação']
+2025-07-09 13:55:32,368 - INFO - Buckets permitidos (normalizados): ['execucao', 'aguardando validacao', 'concluidos', 'concluido', 'concluida', 'concluidas']
+2025-07-09 13:55:32,368 - INFO - Buckets encontrados (normalizados): ['execucao', 'pendentes', 'backlog', 'concluidas', 'aguardando validacao']
+2025-07-09 13:55:32,370 - INFO - Buckets que terão datas removidas:
+2025-07-09 13:55:32,370 - INFO -   Original: 'Pendentes' -> Normalizado: 'pendentes'
+2025-07-09 13:55:32,371 - INFO -   Original: 'Backlog' -> Normalizado: 'backlog'
+2025-07-09 13:55:32,371 - INFO - Removendo datas de 34 registros com buckets não permitidos
+2025-07-09 13:55:32,372 - INFO -   - 34 datas de início removidas
+2025-07-09 13:55:32,372 - INFO -   - 34 datas de entrega removidas
+2025-07-09 13:55:32,373 - INFO - Buckets com datas removidas:
+2025-07-09 13:55:32,373 - INFO -   - 'Backlog': 22 registros
+2025-07-09 13:55:32,373 - INFO -   - 'Pendentes': 12 registros
+2025-07-09 13:55:32,374 - INFO - Convertendo 4 colunas de data
+2025-07-09 13:55:32,378 - WARNING - Data de início: 25 datas falharam no parsing
+2025-07-09 13:55:32,379 - WARNING - Data de entrega: 2 datas falharam no parsing
+2025-07-09 13:55:32,381 - WARNING - Data de conclusão: 53 datas falharam no parsing
+2025-07-09 13:55:32,381 - INFO - Preenchendo data de início para 23 registros
+2025-07-09 13:55:32,381 - INFO - Regra: Data de início = Data de entrega - 20 dias
+2025-07-09 13:55:32,385 - INFO - Distribuição por bucket:
+2025-07-09 13:55:32,386 - INFO -   execução: 23 registros
+2025-07-09 13:55:32,386 - INFO -   backlog: 22 registros
+2025-07-09 13:55:32,386 - INFO -   concluidas: 13 registros
+2025-07-09 13:55:32,386 - INFO -   pendentes: 12 registros
+2025-07-09 13:55:32,386 - INFO -   aguardando validação: 4 registros
+2025-07-09 13:55:32,387 - INFO -   Data de início: 38/74 preenchidas (51.4%)
+2025-07-09 13:55:32,387 - INFO -   Data de entrega: 38/74 preenchidas (51.4%)
+2025-07-09 13:55:32,388 - INFO -   Data de conclusão: 21/74 preenchidas (28.4%)
+2025-07-09 13:55:32,388 - INFO -   Atribuído: 74/74 preenchidos (100.0%)
+2025-07-09 13:55:32,389 - INFO - Total de registros processados: 74
+2025-07-09 13:55:32,434 - INFO - Arquivo salvo com sucesso: TarefasPlanner_20250709_135532.xlsx
+2025-07-09 13:55:32,435 - INFO - Pipeline concluído com sucesso
+2025-07-09 13:55:32,435 - INFO - Iniciando validação dos resultados...
+2025-07-09 13:55:32,435 - INFO - Carregando arquivos para validação...
+2025-07-09 13:55:32,448 - INFO - Arquivo de entrada: 74 linhas
+2025-07-09 13:55:32,478 - INFO - Arquivo de saída: 74 linhas
+2025-07-09 13:55:32,479 - INFO - Executando validações...
+2025-07-09 13:55:32,483 - INFO - ============================================================
+2025-07-09 13:55:32,483 - INFO - RELATÓRIO DE VALIDAÇÃO
+2025-07-09 13:55:32,484 - INFO - ============================================================
+2025-07-09 13:55:32,484 - INFO - Testes executados: 5
+2025-07-09 13:55:32,484 - INFO - Testes aprovados: 5
+2025-07-09 13:55:32,484 - INFO - Taxa de sucesso: 100.0%
+2025-07-09 13:55:32,485 - INFO - 
+2025-07-09 13:55:32,485 - INFO - Contagem de Linhas: ✅ Número de linhas preservado: 74
+2025-07-09 13:55:32,485 - INFO - IDs Únicos: ✅ Todos os 74 IDs preservados
+2025-07-09 13:55:32,485 - INFO - Datas Críticas: ✅ Datas importantes preservadas adequadamente
+2025-07-09 13:55:32,485 - INFO - Regras de Bucket: ✅ Regras de bucket aplicadas corretamente
+2025-07-09 13:55:32,486 - INFO - Consistência de Dados: ✅ Dados consistentes
+2025-07-09 13:55:32,486 - INFO - 
+2025-07-09 13:55:32,486 - INFO - ESTATÍSTICAS:
+2025-07-09 13:55:32,486 - INFO - Preenchimento de datas:
+2025-07-09 13:55:32,486 - INFO -   Data de início: 38/74 (51.4%)
+2025-07-09 13:55:32,486 - INFO -   Data de entrega: 38/74 (51.4%)
+2025-07-09 13:55:32,486 - INFO -   Data de conclusão: 21/74 (28.4%)
+2025-07-09 13:55:32,486 - INFO - Distribuição por bucket:
+2025-07-09 13:55:32,487 - INFO -   Execução: 23 registros
+2025-07-09 13:55:32,487 - INFO -   Backlog: 22 registros
+2025-07-09 13:55:32,487 - INFO -   Concluidas: 13 registros
+2025-07-09 13:55:32,487 - INFO -   Pendentes: 12 registros
+2025-07-09 13:55:32,487 - INFO -   Aguardando validação: 4 registros
+2025-07-09 13:55:32,487 - INFO - ============================================================
+2025-07-09 13:55:32,487 - INFO - ✅ Validação concluída: Todos os testes críticos passaram
+2025-07-09 13:55:32,487 - INFO - PROCESSAMENTO CONCLUÍDO COM SUCESSO!
