@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Módulo de validação e teste para pipeline do Planner.
 
@@ -23,7 +24,7 @@ class ValidationResult:
     passed: bool
     message: str
     details: Dict[str, Any] = None
-    severity: str = "INFO"
+    severity: str = "INFO"  # INFO, WARNING, ERROR, CRITICAL
 
 
 class PlannerValidator:
@@ -90,8 +91,8 @@ class PlannerValidator:
     
     def validate_unique_ids(self) -> ValidationResult:
         """Valida se IDs únicos foram preservados."""
-        # Tentar encontrar coluna de ID
-        id_columns = ['ID da Tarefa', 'Identificação da tarefa', 'ID', 'Task ID']
+        # Tentar encontrar coluna de ID/contador
+        id_columns = ['Quantidade de Tarefa', 'ID da Tarefa', 'Identificação da tarefa', 'ID', 'Task ID']
         id_col = None
         
         for col in id_columns:
@@ -101,23 +102,46 @@ class PlannerValidator:
         
         if not id_col:
             return ValidationResult(
-                test_name="IDs Únicos",
+                test_name="Contador de Tarefas",
                 passed=True,
-                message="⚠️ Nenhuma coluna de ID encontrada para validar",
+                message="⚠️ Nenhuma coluna de ID/contador encontrada para validar",
                 severity="WARNING"
             )
         
-        # Mapear coluna no output (pode ter sido renomeada)
-        output_id_col = 'ID da Tarefa' if 'ID da Tarefa' in self.output_df.columns else id_col
+        # Mapear coluna no output (deve ser 'Quantidade de Tarefa' após processamento)
+        output_id_col = 'Quantidade de Tarefa' if 'Quantidade de Tarefa' in self.output_df.columns else id_col
         
         if output_id_col not in self.output_df.columns:
             return ValidationResult(
-                test_name="IDs Únicos",
+                test_name="Contador de Tarefas",
                 passed=False,
-                message=f"❌ Coluna de ID '{output_id_col}' não encontrada no arquivo de saída",
+                message=f"❌ Coluna '{output_id_col}' não encontrada no arquivo de saída",
                 severity="ERROR"
             )
         
+        # Para contador sequencial, verificar se vai de 1 até o número total de linhas
+        if output_id_col == 'Quantidade de Tarefa':
+            total_output = len(self.output_df)
+            contador_valores = sorted(self.output_df[output_id_col].dropna().tolist())
+            esperado = list(range(1, total_output + 1))
+            
+            if contador_valores == esperado:
+                return ValidationResult(
+                    test_name="Contador de Tarefas",
+                    passed=True,
+                    message=f"✅ Contador sequencial correto: 1 a {total_output}",
+                    details={"total_tarefas": total_output, "range": f"1-{total_output}"}
+                )
+            else:
+                return ValidationResult(
+                    test_name="Contador de Tarefas",
+                    passed=False,
+                    message=f"❌ Contador sequencial incorreto - esperado 1-{total_output}",
+                    details={"expected": esperado, "actual": contador_valores},
+                    severity="ERROR"
+                )
+        
+        # Para outros tipos de ID, fazer validação tradicional
         input_ids = set(self.input_df[id_col].dropna().astype(str))
         output_ids = set(self.output_df[output_id_col].dropna().astype(str))
         
@@ -285,6 +309,20 @@ class PlannerValidator:
             if len(invalid_dates) > 0:
                 issues.append(f"{len(invalid_dates)} registros com data de início após data de entrega")
         
+        # Verificar datas de início antes de datas de criação
+        if 'Data de criação' in self.output_df.columns and 'Data de início' in self.output_df.columns:
+            both_creation_start = self.output_df[
+                self.output_df['Data de criação'].notna() & 
+                self.output_df['Data de início'].notna()
+            ]
+            
+            invalid_creation_dates = both_creation_start[
+                both_creation_start['Data de início'] < both_creation_start['Data de criação']
+            ]
+            
+            if len(invalid_creation_dates) > 0:
+                issues.append(f"{len(invalid_creation_dates)} registros com data de início antes da criação")
+        
         # Verificar datas muito antigas ou futuras
         date_cols = ['Data de início', 'Data de entrega', 'Data de conclusão']
         current_year = pd.Timestamp.now().year
@@ -313,7 +351,7 @@ class PlannerValidator:
             return ValidationResult(
                 test_name="Consistência de Dados",
                 passed=True,
-                message="✅ Dados consistentes"
+                message="✅ Dados consistentes - todas as datas seguem lógica correta"
             )
     
     def generate_statistics(self) -> Dict[str, Any]:

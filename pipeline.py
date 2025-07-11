@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Pipeline de processamento para dados do Microsoft Planner.
 
@@ -20,7 +21,7 @@ class PlannerConfig:
     
     # Mapeamento de colunas (inglês -> português)
     COLUMN_MAPPING = {
-        'Identificação da tarefa': 'ID da Tarefa',
+        'Identificação da tarefa': 'Quantidade de Tarefa',  # Mudança: ID -> Quantidade
         'Nome da tarefa': 'Título',
         'Nome do Bucket': 'Bucket',
         'Progresso': 'Progresso (%)',
@@ -110,6 +111,25 @@ def validate_required_columns(df: pd.DataFrame) -> None:
     logging.info("Validação de colunas: OK")
 
 
+def clean_string_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Limpa colunas de texto removendo espaços extras.
+    
+    Args:
+        df: DataFrame para limpar
+        
+    Returns:
+        DataFrame com strings limpas
+    """
+    string_columns = df.select_dtypes(include=['object']).columns
+    
+    for col in string_columns:
+        if col in df.columns:
+            df[col] = df[col].astype(str).str.strip()
+    
+    return df
+
+
 def normalize_bucket_values(df: pd.DataFrame, bucket_col: str = 'Bucket') -> pd.DataFrame:
     """
     Normaliza e padroniza valores da coluna de bucket.
@@ -154,23 +174,33 @@ def normalize_bucket_values(df: pd.DataFrame, bucket_col: str = 'Bucket') -> pd.
     return df_copy
 
 
-def clean_string_columns(df: pd.DataFrame) -> pd.DataFrame:
+def create_task_counter(df: pd.DataFrame, 
+                       id_col: str = 'Quantidade de Tarefa') -> pd.DataFrame:
     """
-    Limpa colunas de texto removendo espaços extras.
+    Substitui a coluna de ID por um contador sequencial de tarefas.
     
     Args:
-        df: DataFrame para limpar
+        df: DataFrame para processar
+        id_col: Nome da coluna que será o contador
         
     Returns:
-        DataFrame com strings limpas
+        DataFrame com coluna de contador sequencial
     """
-    string_columns = df.select_dtypes(include=['object']).columns
+    df_copy = df.copy()
     
-    for col in string_columns:
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.strip()
+    # Verificar se a coluna existe
+    if id_col not in df_copy.columns:
+        logging.warning(f"Coluna '{id_col}' não encontrada - pulando criação do contador")
+        return df_copy
     
-    return df
+    # Criar numeração sequencial começando do 1
+    total_tarefas = len(df_copy)
+    df_copy[id_col] = range(1, total_tarefas + 1)
+    
+    logging.info(f"Criado contador sequencial: 1 a {total_tarefas} tarefas")
+    logging.info(f"Total de projetos/tarefas catalogados: {total_tarefas}")
+    
+    return df_copy
 
 
 def fill_default_values(df: pd.DataFrame) -> pd.DataFrame:
@@ -331,43 +361,6 @@ def validate_dates_by_bucket(df: pd.DataFrame,
     return df_copy
 
 
-def mask_bucket_dates(df: pd.DataFrame, 
-                     bucket_col: str, 
-                     date_cols: List[str]) -> pd.DataFrame:
-    """
-    Zera datas para registros em buckets inativos (backlog, a fazer).
-    
-    DEPRECATED: Esta função foi substituída por validate_dates_by_bucket()
-    que é mais específica e robusta.
-    
-    Args:
-        df: DataFrame para processar
-        bucket_col: Nome da coluna de bucket
-        date_cols: Lista de colunas de data para zerar
-        
-    Returns:
-        DataFrame com datas mascaradas
-    """
-    # Manter por compatibilidade, mas usar nova validação
-    return validate_dates_by_bucket(df, bucket_col)
-
-
-def create_backup_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Cria colunas de backup para debug/auditoria.
-    
-    Args:
-        df: DataFrame para processar
-        
-    Returns:
-        DataFrame com colunas de backup
-    """
-    if 'Data de entrega' in df.columns:
-        df['Due_raw'] = df['Data de entrega'].astype(str)
-    
-    return df
-
-
 def fill_missing_start_dates(df: pd.DataFrame, 
                             start_col: str = 'Data de início',
                             due_col: str = 'Data de entrega',
@@ -420,6 +413,115 @@ def fill_missing_start_dates(df: pd.DataFrame,
     invalid_dates = df.loc[mask_to_fill, start_col] > df.loc[mask_to_fill, due_col]
     if invalid_dates.any():
         logging.warning(f"ATENÇÃO: {invalid_dates.sum()} datas de início ficaram posteriores à entrega!")
+    
+    return df
+
+
+def validate_start_vs_creation_dates(df: pd.DataFrame,
+                                    creation_col: str = 'Data de criação',
+                                    start_col: str = 'Data de início') -> pd.DataFrame:
+    """
+    Valida e corrige datas de criação baseadas na data de início.
+    
+    Se a data de início for menor que a data de criação, copia a data de início
+    para a data de criação (ajusta a criação para ser compatível com o início planejado).
+    
+    Args:
+        df: DataFrame para processar
+        creation_col: Nome da coluna de data de criação
+        start_col: Nome da coluna de data de início
+        
+    Returns:
+        DataFrame com datas de criação corrigidas
+    """
+    if creation_col not in df.columns or start_col not in df.columns:
+        logging.warning(f"Colunas '{creation_col}' ou '{start_col}' não encontradas - pulando validação de datas")
+        return df
+    
+    df_copy = df.copy()
+    
+    # Debug: mostrar alguns valores antes da correção
+    logging.info("Verificando datas de início vs criação...")
+    
+    # Encontrar registros onde ambas as datas existem
+    mask_both_dates = (df_copy[creation_col].notna() & df_copy[start_col].notna())
+    
+    if mask_both_dates.sum() == 0:
+        logging.info("✅ Nenhum registro com ambas as datas para validar")
+        return df_copy
+    
+    logging.info(f"Analisando {mask_both_dates.sum()} registros com ambas as datas...")
+    
+    # Encontrar datas de início menores que datas de criação
+    mask_invalid_dates = (
+        mask_both_dates & 
+        (df_copy[start_col] < df_copy[creation_col])
+    )
+    
+    invalid_count = mask_invalid_dates.sum()
+    total_with_dates = mask_both_dates.sum()
+    
+    # Debug: mostrar alguns exemplos ANTES da correção
+    if mask_both_dates.sum() > 0:
+        logging.info("Exemplos de datas ANTES da validação:")
+        for idx in df_copy[mask_both_dates].index[:3]:
+            creation_date = df_copy.loc[idx, creation_col]
+            start_date = df_copy.loc[idx, start_col]
+            title = df_copy.loc[idx, 'Título'] if 'Título' in df_copy.columns else f"Linha {idx}"
+            
+            if pd.notna(creation_date) and pd.notna(start_date):
+                creation_str = creation_date.strftime('%d/%m/%Y') if hasattr(creation_date, 'strftime') else str(creation_date)
+                start_str = start_date.strftime('%d/%m/%Y') if hasattr(start_date, 'strftime') else str(start_date)
+                status = "❌ PRECISA CORREÇÃO" if start_date < creation_date else "✅ VÁLIDA"
+                logging.info(f"  '{title}': Criação={creation_str}, Início={start_str} {status}")
+    
+    if invalid_count > 0:
+        logging.info(f"🔧 CORRIGINDO {invalid_count} datas de criação baseadas no início planejado")
+        
+        # Aplicar correção: copiar data de INÍCIO para data de CRIAÇÃO
+        df_copy.loc[mask_invalid_dates, creation_col] = df_copy.loc[mask_invalid_dates, start_col]
+        
+        # Mostrar exemplos APÓS a correção
+        logging.info("Exemplos APÓS a correção:")
+        for idx in df_copy[mask_invalid_dates].index[:3]:
+            creation_date = df_copy.loc[idx, creation_col]  # Agora já corrigida
+            start_date = df_copy.loc[idx, start_col]
+            title = df_copy.loc[idx, 'Título'] if 'Título' in df_copy.columns else f"Linha {idx}"
+            
+            if pd.notna(creation_date) and pd.notna(start_date):
+                creation_str = creation_date.strftime('%d/%m/%Y') if hasattr(creation_date, 'strftime') else str(creation_date)
+                start_str = start_date.strftime('%d/%m/%Y') if hasattr(start_date, 'strftime') else str(start_date)
+                logging.info(f"  '{title}': Criação={creation_str} ✅, Início={start_str} (CRIAÇÃO AJUSTADA)")
+        
+        # Validar se correção funcionou
+        remaining_invalid = (
+            (df_copy[creation_col].notna() & df_copy[start_col].notna()) &
+            (df_copy[start_col] < df_copy[creation_col])
+        ).sum()
+        
+        if remaining_invalid == 0:
+            logging.info(f"✅ Todas as {invalid_count} datas de criação foram ajustadas com sucesso")
+        else:
+            logging.warning(f"⚠️ Ainda restam {remaining_invalid} datas inconsistentes após correção")
+            
+    else:
+        logging.info(f"✅ Todas as {total_with_dates} datas estão consistentes (criação ≤ início)")
+    
+    return df_copy
+
+
+def create_backup_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cria colunas de backup para debug/auditoria.
+    
+    Args:
+        df: DataFrame para processar
+        
+    Returns:
+        DataFrame com colunas de backup
+    """
+    if 'Data de entrega' in df.columns:
+        df['Due_raw'] = df['Data de entrega'].astype(str)
     
     return df
 
@@ -523,10 +625,13 @@ def main(input_path: Path, output_dir: Path) -> Optional[Path]:
         # 4. Normalizar valores de bucket
         df = normalize_bucket_values(df)
         
-        # 5. Backup para debug
+        # 5. Criar contador de tarefas
+        df = create_task_counter(df)
+        
+        # 6. Backup para debug
         df = create_backup_columns(df)
         
-        # 6. Pipeline de transformações usando method chaining
+        # 7. Pipeline de transformações usando method chaining
         logging.info("Aplicando transformações...")
         
         df = (df
@@ -546,16 +651,21 @@ def main(input_path: Path, output_dir: Path) -> Optional[Path]:
                   days_before=PlannerConfig.START_DATE_FILL_DAYS
               )
               .pipe(
+                  validate_start_vs_creation_dates,
+                  creation_col='Data de criação',
+                  start_col='Data de início'
+              )
+              .pipe(
                   debug_missing_due,
                   bucket_col='Bucket',
                   due_raw_col='Due_raw',
                   due_parsed_col='Data de entrega'
               ))
         
-        # 7. Estatísticas e logs
+        # 8. Estatísticas e logs
         log_processing_stats(df)
         
-        # 8. Salvamento
+        # 9. Salvamento
         output_path = generate_output_filename(output_dir)
         save_dataframe(df, output_path)
         

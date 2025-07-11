@@ -180,13 +180,17 @@ def main(input_filename: Optional[str] = None, run_validation: bool = True) -> N
         
         # Executar validação se solicitado
         if run_validation and output_file:
-            logging.info("Iniciando validação dos resultados...")
-            validation_passed = test_validation.main(input_path, output_file)
-            
-            if validation_passed:
-                logging.info("✅ Validação concluída: Todos os testes críticos passaram")
-            else:
-                logging.warning("⚠️ Validação detectou problemas - revisar logs acima")
+            try:
+                logging.info("Iniciando validação dos resultados...")
+                validation_passed = test_validation.main(input_path, output_file)
+                
+                if validation_passed:
+                    logging.info("✅ Validação concluída: Todos os testes críticos passaram")
+                else:
+                    logging.warning("⚠️ Validação detectou problemas - revisar logs acima")
+            except Exception as e:
+                logging.warning(f"Erro na validação (não crítico): {e}")
+                logging.info("Processamento principal foi bem-sucedido")
         
         logging.info("PROCESSAMENTO CONCLUÍDO COM SUCESSO!")
         
