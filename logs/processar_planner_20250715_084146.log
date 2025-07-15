@@ -1,0 +1,97 @@
+2025-07-15 08:41:46,138 - INFO - INICIANDO PROCESSAMENTO DO PLANNER
+2025-07-15 08:41:46,140 - INFO - Arquivo encontrado: Gerenciamento de Projetos .xlsx
+2025-07-15 08:41:46,141 - INFO - Diretório de saída criado/validado: C:\Users\artur.almeida\OneDrive - Chibatão Navegação e Comércio Ltda\Documentos\progs\PowerBI_Projetos\outputs
+2025-07-15 08:41:46,141 - INFO - Iniciando pipeline de processamento
+2025-07-15 08:41:47,868 - INFO - Arquivo carregado: 74 linhas, 18 colunas
+2025-07-15 08:41:47,869 - INFO - Validação de colunas: OK
+2025-07-15 08:41:47,873 - INFO - ✅ Nenhum bucket precisou ser renomeado
+2025-07-15 08:41:47,874 - INFO - Criado contador sequencial: 1 a 74 tarefas
+2025-07-15 08:41:47,874 - INFO - Total de projetos/tarefas catalogados: 74
+2025-07-15 08:41:47,874 - INFO - Aplicando transformações...
+2025-07-15 08:41:47,875 - INFO - Preenchendo 5 campos vazios na coluna 'Atribuído'
+2025-07-15 08:41:47,876 - INFO - ✅ Todos os 5 campos preenchidos com: 'Michael Oneil; Artur Almeida'
+2025-07-15 08:41:47,877 - INFO - Buckets encontrados no arquivo: ['Execução', 'Pendentes', 'Backlog', 'Aguardando validação', 'Concluidas']
+2025-07-15 08:41:47,878 - INFO - Buckets permitidos (normalizados): ['execucao', 'aguardando validacao', 'concluidos', 'concluido', 'concluida', 'concluidas']
+2025-07-15 08:41:47,879 - INFO - Buckets encontrados (normalizados): ['execucao', 'pendentes', 'backlog', 'aguardando validacao', 'concluidas']
+2025-07-15 08:41:47,880 - INFO - Buckets que terão datas removidas:
+2025-07-15 08:41:47,881 - INFO -   Original: 'Pendentes' -> Normalizado: 'pendentes'
+2025-07-15 08:41:47,881 - INFO -   Original: 'Backlog' -> Normalizado: 'backlog'
+2025-07-15 08:41:47,882 - INFO - Removendo datas de 34 registros com buckets não permitidos
+2025-07-15 08:41:47,882 - INFO -   - 34 datas de início removidas
+2025-07-15 08:41:47,882 - INFO -   - 34 datas de entrega removidas
+2025-07-15 08:41:47,883 - INFO - Buckets com datas removidas:
+2025-07-15 08:41:47,883 - INFO -   - 'Backlog': 22 registros
+2025-07-15 08:41:47,883 - INFO -   - 'Pendentes': 12 registros
+2025-07-15 08:41:47,884 - INFO - Convertendo 4 colunas de data
+2025-07-15 08:41:47,888 - WARNING - Data de início: 25 datas falharam no parsing
+2025-07-15 08:41:47,889 - WARNING - Data de entrega: 2 datas falharam no parsing
+2025-07-15 08:41:47,890 - WARNING - Data de conclusão: 53 datas falharam no parsing
+2025-07-15 08:41:47,891 - INFO - Preenchendo data de início para 23 registros
+2025-07-15 08:41:47,891 - INFO - Regra: Data de início = Data de entrega - 20 dias
+2025-07-15 08:41:47,893 - INFO - Verificando datas de início vs criação...
+2025-07-15 08:41:47,894 - INFO - Analisando 38 registros com ambas as datas...
+2025-07-15 08:41:47,894 - INFO - Exemplos de datas ANTES da validação:
+2025-07-15 08:41:47,895 - INFO -   'Cancelamento de entrada - Projeto de suporte': Criação=09/07/2025, Início=08/07/2025 ❌ PRECISA CORREÇÃO
+2025-07-15 08:41:47,895 - INFO -   'Novo PortPlanner': Criação=08/07/2025, Início=01/05/2024 ❌ PRECISA CORREÇÃO
+2025-07-15 08:41:47,895 - INFO -   'Agendamento Chibatão WEB': Criação=08/07/2025, Início=05/07/2025 ❌ PRECISA CORREÇÃO
+2025-07-15 08:41:47,896 - INFO - 🔧 CORRIGINDO 16 datas de criação baseadas no início planejado
+2025-07-15 08:41:47,896 - INFO - Exemplos APÓS a correção:
+2025-07-15 08:41:47,897 - INFO -   'Cancelamento de entrada - Projeto de suporte': Criação=08/07/2025 ✅, Início=08/07/2025 (CRIAÇÃO AJUSTADA)
+2025-07-15 08:41:47,897 - INFO -   'Novo PortPlanner': Criação=01/05/2024 ✅, Início=01/05/2024 (CRIAÇÃO AJUSTADA)
+2025-07-15 08:41:47,897 - INFO -   'Agendamento Chibatão WEB': Criação=05/07/2025 ✅, Início=05/07/2025 (CRIAÇÃO AJUSTADA)
+2025-07-15 08:41:47,898 - INFO - ✅ Todas as 16 datas de criação foram ajustadas com sucesso
+2025-07-15 08:41:47,899 - INFO -   Data de início: 36 valores nulos → 'NÃO DEFINIDO'
+2025-07-15 08:41:47,900 - INFO -   Data de entrega: 36 valores nulos → 'NÃO DEFINIDO'
+2025-07-15 08:41:47,901 - INFO -   Data de conclusão: 53 valores nulos → 'NÃO DEFINIDO'
+2025-07-15 08:41:47,901 - INFO - ✅ Total de 125 valores nulos substituídos por 'NÃO DEFINIDO'
+2025-07-15 08:41:47,903 - INFO -   É Recorrente: 1 valores únicos → 1 ('SIM'/'NÃO')
+2025-07-15 08:41:47,904 - INFO -   Atrasados: 2 valores únicos → 2 ('SIM'/'NÃO')
+2025-07-15 08:41:47,904 - INFO - ✅ 2 colunas booleanas simplificadas para 'SIM'/'NÃO'
+2025-07-15 08:41:47,905 - INFO - Removidas 4 colunas de backup: ['Due_raw', 'Data de início_original', 'Data de entrega_original', 'Data de conclusão_original']
+2025-07-15 08:41:47,906 - INFO - Distribuição por bucket:
+2025-07-15 08:41:47,906 - INFO -   execução: 23 registros
+2025-07-15 08:41:47,906 - INFO -   backlog: 22 registros
+2025-07-15 08:41:47,906 - INFO -   concluidas: 13 registros
+2025-07-15 08:41:47,906 - INFO -   pendentes: 12 registros
+2025-07-15 08:41:47,906 - INFO -   aguardando validação: 4 registros
+2025-07-15 08:41:47,907 - INFO -   Data de início: 38 definidas, 36 não definidas (51.4% preenchidas)
+2025-07-15 08:41:47,907 - INFO -   Data de entrega: 38 definidas, 36 não definidas (51.4% preenchidas)
+2025-07-15 08:41:47,908 - INFO -   Data de conclusão: 21 definidas, 53 não definidas (28.4% preenchidas)
+2025-07-15 08:41:47,909 - INFO -   Atribuído: 74/74 preenchidos (100.0%)
+2025-07-15 08:41:47,909 - INFO -   É Recorrente: 0 SIM, 74 NÃO
+2025-07-15 08:41:47,909 - INFO -   Atrasados: 1 SIM, 73 NÃO
+2025-07-15 08:41:47,910 - INFO - Total de registros processados: 74
+2025-07-15 08:41:47,978 - INFO - Arquivo salvo com sucesso: TarefasPlanner_20250715_084147.xlsx
+2025-07-15 08:41:47,979 - INFO - Pipeline concluído com sucesso
+2025-07-15 08:41:47,979 - INFO - Iniciando validação dos resultados...
+2025-07-15 08:41:47,979 - INFO - Carregando arquivos para validação...
+2025-07-15 08:41:47,993 - INFO - Arquivo de entrada: 74 linhas
+2025-07-15 08:41:48,030 - INFO - Arquivo de saída: 74 linhas
+2025-07-15 08:41:48,030 - INFO - Executando validações...
+2025-07-15 08:41:48,033 - INFO - ============================================================
+2025-07-15 08:41:48,033 - INFO - RELATÓRIO DE VALIDAÇÃO
+2025-07-15 08:41:48,033 - INFO - ============================================================
+2025-07-15 08:41:48,034 - INFO - Testes executados: 5
+2025-07-15 08:41:48,034 - INFO - Testes aprovados: 3
+2025-07-15 08:41:48,034 - INFO - Taxa de sucesso: 60.0%
+2025-07-15 08:41:48,034 - INFO - 
+2025-07-15 08:41:48,034 - INFO - Contagem de Linhas: ✅ Número de linhas preservado: 74
+2025-07-15 08:41:48,034 - INFO - Contador de Tarefas: ✅ Contador sequencial correto: 1 a 74
+2025-07-15 08:41:48,034 - INFO - Datas Críticas: ✅ Datas importantes preservadas adequadamente
+2025-07-15 08:41:48,035 - INFO - Regras de Bucket: ❌ Problemas com regras de bucket: 'backlog' tem 22 datas de início; 'backlog' tem 22 datas de entrega
+2025-07-15 08:41:48,035 - INFO - validate_data_consistency: ❌ Erro durante validação: '>' not supported between instances of 'Timestamp' and 'str'
+2025-07-15 08:41:48,035 - INFO - 
+2025-07-15 08:41:48,035 - INFO - ESTATÍSTICAS:
+2025-07-15 08:41:48,035 - INFO - Preenchimento de datas:
+2025-07-15 08:41:48,035 - INFO -   Data de início: 74/74 (100.0%)
+2025-07-15 08:41:48,036 - INFO -   Data de entrega: 74/74 (100.0%)
+2025-07-15 08:41:48,036 - INFO -   Data de conclusão: 74/74 (100.0%)
+2025-07-15 08:41:48,036 - INFO - Distribuição por bucket:
+2025-07-15 08:41:48,036 - INFO -   Execução: 23 registros
+2025-07-15 08:41:48,036 - INFO -   Backlog: 22 registros
+2025-07-15 08:41:48,036 - INFO -   Concluidas: 13 registros
+2025-07-15 08:41:48,036 - INFO -   Pendentes: 12 registros
+2025-07-15 08:41:48,037 - INFO -   Aguardando validação: 4 registros
+2025-07-15 08:41:48,037 - INFO - ============================================================
+2025-07-15 08:41:48,037 - WARNING - ⚠️ Validação detectou problemas - revisar logs acima
+2025-07-15 08:41:48,037 - INFO - PROCESSAMENTO CONCLUÍDO COM SUCESSO!

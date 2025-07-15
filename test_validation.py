@@ -197,9 +197,9 @@ class PlannerValidator:
             if not input_col or output_col not in self.output_df.columns:
                 continue
             
-            # Contar datas válidas
+            # Contar datas válidas (input: notna, output: diferentes de "NÃO DEFINIDO")
             input_valid = self.input_df[input_col].notna().sum()
-            output_valid = self.output_df[output_col].notna().sum()
+            output_valid = (self.output_df[output_col] != "NÃO DEFINIDO").sum() if output_col in self.output_df.columns else 0
             
             date_stats[output_col] = {
                 'input_valid': input_valid,
@@ -244,33 +244,33 @@ class PlannerValidator:
                 severity="WARNING"
             )
         
-        # Buckets que NÃO devem ter datas de início/entrega
-        invalid_buckets = ['backlog', 'a fazer']
-        # Buckets que DEVEM poder ter datas
-        valid_buckets = ['execução', 'aguardando validação', 'concluídos']
+        # Buckets que NÃO devem ter datas DEFINIDAS (podem ter "NÃO DEFINIDO")
+        invalid_buckets = ['backlog', 'pendente']
         
         bucket_issues = []
         
-        # Verificar buckets inválidos com datas
+        # Verificar buckets inválidos com datas DEFINIDAS
         for bucket in invalid_buckets:
             mask = self.output_df['Bucket'].str.strip().str.lower() == bucket
             bucket_data = self.output_df[mask]
             
             if len(bucket_data) > 0:
-                invalid_start = bucket_data['Data de início'].notna().sum()
-                invalid_due = bucket_data['Data de entrega'].notna().sum()
+                # Contar datas que NÃO são "NÃO DEFINIDO" (ou seja, estão realmente definidas)
+                defined_start = (bucket_data['Data de início'] != "NÃO DEFINIDO").sum() if 'Data de início' in bucket_data.columns else 0
+                defined_due = (bucket_data['Data de entrega'] != "NÃO DEFINIDO").sum() if 'Data de entrega' in bucket_data.columns else 0
                 
-                if invalid_start > 0:
-                    bucket_issues.append(f"'{bucket}' tem {invalid_start} datas de início")
-                if invalid_due > 0:
-                    bucket_issues.append(f"'{bucket}' tem {invalid_due} datas de entrega")
+                if defined_start > 0:
+                    bucket_issues.append(f"'{bucket}' tem {defined_start} datas de início definidas")
+                if defined_due > 0:
+                    bucket_issues.append(f"'{bucket}' tem {defined_due} datas de entrega definidas")
         
         # Verificar se buckets válidos não perderam datas importantes
         exec_mask = self.output_df['Bucket'].str.strip().str.lower() == 'execução'
         exec_data = self.output_df[exec_mask]
         
         if len(exec_data) > 0:
-            missing_due = exec_data['Data de entrega'].isna().sum()
+            # Contar quantas são "NÃO DEFINIDO" (problemático para execução)
+            missing_due = (exec_data['Data de entrega'] == "NÃO DEFINIDO").sum() if 'Data de entrega' in exec_data.columns else 0
             total_exec = len(exec_data)
             
             if missing_due > total_exec * 0.3:  # Mais de 30% sem data de entrega
@@ -288,56 +288,84 @@ class PlannerValidator:
             return ValidationResult(
                 test_name="Regras de Bucket",
                 passed=True,
-                message="✅ Regras de bucket aplicadas corretamente"
+                message="✅ Regras de bucket aplicadas corretamente - buckets inativos têm 'NÃO DEFINIDO'"
             )
     
     def validate_data_consistency(self) -> ValidationResult:
         """Valida consistência dos dados (datas lógicas, etc.)."""
         issues = []
         
-        # Verificar datas de início após datas de entrega
+        # Verificar datas de início após datas de entrega (apenas datas reais, não "NÃO DEFINIDO")
         if 'Data de início' in self.output_df.columns and 'Data de entrega' in self.output_df.columns:
-            both_dates = self.output_df[
+            # Filtrar apenas registros com datas reais (não "NÃO DEFINIDO")
+            real_dates = self.output_df[
+                (self.output_df['Data de início'] != "NÃO DEFINIDO") & 
+                (self.output_df['Data de entrega'] != "NÃO DEFINIDO") &
                 self.output_df['Data de início'].notna() & 
                 self.output_df['Data de entrega'].notna()
             ]
             
-            invalid_dates = both_dates[
-                both_dates['Data de início'] > both_dates['Data de entrega']
-            ]
-            
-            if len(invalid_dates) > 0:
-                issues.append(f"{len(invalid_dates)} registros com data de início após data de entrega")
+            if len(real_dates) > 0:
+                # Converter para datetime para comparação
+                try:
+                    start_dates = pd.to_datetime(real_dates['Data de início'], errors='coerce')
+                    due_dates = pd.to_datetime(real_dates['Data de entrega'], errors='coerce')
+                    
+                    invalid_dates = (start_dates > due_dates).sum()
+                    
+                    if invalid_dates > 0:
+                        issues.append(f"{invalid_dates} registros com data de início após data de entrega")
+                except Exception as e:
+                    # Se houve erro na conversão, apenas reportar mas não falhar
+                    issues.append(f"Erro ao validar ordem das datas: {e}")
         
-        # Verificar datas de início antes de datas de criação
+        # Verificar datas de início antes de datas de criação (apenas datas reais)
         if 'Data de criação' in self.output_df.columns and 'Data de início' in self.output_df.columns:
-            both_creation_start = self.output_df[
-                self.output_df['Data de criação'].notna() & 
-                self.output_df['Data de início'].notna()
+            real_creation_start = self.output_df[
+                (self.output_df['Data de criação'].notna()) & 
+                (self.output_df['Data de início'] != "NÃO DEFINIDO") &
+                (self.output_df['Data de início'].notna())
             ]
             
-            invalid_creation_dates = both_creation_start[
-                both_creation_start['Data de início'] < both_creation_start['Data de criação']
-            ]
-            
-            if len(invalid_creation_dates) > 0:
-                issues.append(f"{len(invalid_creation_dates)} registros com data de início antes da criação")
+            if len(real_creation_start) > 0:
+                try:
+                    creation_dates = pd.to_datetime(real_creation_start['Data de criação'], errors='coerce')
+                    start_dates = pd.to_datetime(real_creation_start['Data de início'], errors='coerce')
+                    
+                    invalid_creation_dates = (start_dates < creation_dates).sum()
+                    
+                    if invalid_creation_dates > 0:
+                        issues.append(f"{invalid_creation_dates} registros com data de início antes da criação")
+                except Exception as e:
+                    # Se houve erro na conversão, apenas reportar mas não falhar
+                    issues.append(f"Erro ao validar datas de criação vs início: {e}")
         
-        # Verificar datas muito antigas ou futuras
+        # Verificar datas muito antigas ou futuras (apenas datas reais)
         date_cols = ['Data de início', 'Data de entrega', 'Data de conclusão']
         current_year = pd.Timestamp.now().year
         
         for col in date_cols:
             if col in self.output_df.columns:
-                dates = self.output_df[col].dropna()
-                if len(dates) > 0:
-                    old_dates = dates[dates.dt.year < current_year - 2].count()
-                    future_dates = dates[dates.dt.year > current_year + 2].count()
-                    
-                    if old_dates > 0:
-                        issues.append(f"{col}: {old_dates} datas muito antigas (>{current_year-2})")
-                    if future_dates > 0:
-                        issues.append(f"{col}: {future_dates} datas muito futuras (<{current_year+2})")
+                # Filtrar apenas datas reais
+                real_dates_series = self.output_df[
+                    (self.output_df[col] != "NÃO DEFINIDO") & 
+                    self.output_df[col].notna()
+                ][col]
+                
+                if len(real_dates_series) > 0:
+                    try:
+                        dates = pd.to_datetime(real_dates_series, errors='coerce').dropna()
+                        if len(dates) > 0:
+                            old_dates = dates[dates.dt.year < current_year - 2].count()
+                            future_dates = dates[dates.dt.year > current_year + 2].count()
+                            
+                            if old_dates > 0:
+                                issues.append(f"{col}: {old_dates} datas muito antigas (>{current_year-2})")
+                            if future_dates > 0:
+                                issues.append(f"{col}: {future_dates} datas muito futuras (<{current_year+2})")
+                    except Exception as e:
+                        # Se houve erro na conversão, apenas reportar mas não falhar
+                        issues.append(f"Erro ao validar {col}: {e}")
         
         if issues:
             return ValidationResult(
@@ -351,7 +379,7 @@ class PlannerValidator:
             return ValidationResult(
                 test_name="Consistência de Dados",
                 passed=True,
-                message="✅ Dados consistentes - todas as datas seguem lógica correta"
+                message="✅ Dados consistentes - datas reais seguem lógica correta"
             )
     
     def generate_statistics(self) -> Dict[str, Any]:
@@ -367,13 +395,14 @@ class PlannerValidator:
             }
         }
         
-        # Estatísticas de datas
+        # Estatísticas de datas (agora considerando "NÃO DEFINIDO")
         date_columns = ['Data de início', 'Data de entrega', 'Data de conclusão']
         stats["date_statistics"] = {}
         
         for col in date_columns:
             if col in self.output_df.columns:
-                filled = self.output_df[col].notna().sum()
+                # Contar datas definidas (diferentes de "NÃO DEFINIDO")
+                filled = (self.output_df[col] != "NÃO DEFINIDO").sum()
                 total = len(self.output_df)
                 stats["date_statistics"][col] = {
                     "filled": filled,

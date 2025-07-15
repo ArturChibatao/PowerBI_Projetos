@@ -510,6 +510,125 @@ def validate_start_vs_creation_dates(df: pd.DataFrame,
     return df_copy
 
 
+def clean_backup_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove colunas de backup e temporárias desnecessárias.
+    
+    Args:
+        df: DataFrame para limpar
+        
+    Returns:
+        DataFrame sem colunas de backup
+    """
+    columns_to_remove = [
+        'Due_raw',
+        'Data de início_original', 
+        'Data de entrega_original',
+        'Data de conclusão_original'
+    ]
+    
+    removed_columns = []
+    df_copy = df.copy()
+    
+    for col in columns_to_remove:
+        if col in df_copy.columns:
+            df_copy = df_copy.drop(columns=[col])
+            removed_columns.append(col)
+    
+    if removed_columns:
+        logging.info(f"Removidas {len(removed_columns)} colunas de backup: {removed_columns}")
+    else:
+        logging.info("✅ Nenhuma coluna de backup encontrada para remover")
+    
+    return df_copy
+
+
+def handle_null_dates(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Trata valores nulos nas colunas de data substituindo por "NÃO DEFINIDO".
+    
+    Args:
+        df: DataFrame para processar
+        
+    Returns:
+        DataFrame com datas nulas tratadas
+    """
+    date_columns = ['Data de início', 'Data de entrega', 'Data de conclusão']
+    df_copy = df.copy()
+    
+    total_nulls_replaced = 0
+    
+    for col in date_columns:
+        if col in df_copy.columns:
+            # Contar valores nulos antes da substituição
+            null_count = df_copy[col].isna().sum()
+            
+            if null_count > 0:
+                # Substituir valores nulos por "NÃO DEFINIDO"
+                df_copy[col] = df_copy[col].fillna("NÃO DEFINIDO")
+                total_nulls_replaced += null_count
+                logging.info(f"  {col}: {null_count} valores nulos → 'NÃO DEFINIDO'")
+    
+    if total_nulls_replaced > 0:
+        logging.info(f"✅ Total de {total_nulls_replaced} valores nulos substituídos por 'NÃO DEFINIDO'")
+    else:
+        logging.info("✅ Nenhum valor nulo encontrado nas colunas de data")
+    
+    return df_copy
+
+
+def simplify_boolean_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Simplifica colunas booleanas para formato "SIM"/"NÃO".
+    
+    Args:
+        df: DataFrame para processar
+        
+    Returns:
+        DataFrame com colunas booleanas simplificadas
+    """
+    boolean_columns = ['É Recorrente', 'Atrasados']
+    df_copy = df.copy()
+    
+    simplified_count = 0
+    
+    for col in boolean_columns:
+        if col in df_copy.columns:
+            # Contar valores únicos antes da conversão
+            unique_before = df_copy[col].nunique()
+            
+            # Converter valores booleanos para SIM/NÃO
+            df_copy[col] = df_copy[col].map({
+                True: "SIM",
+                False: "NÃO",
+                "True": "SIM",
+                "False": "NÃO",
+                "true": "SIM", 
+                "false": "NÃO",
+                1: "SIM",
+                0: "NÃO",
+                "1": "SIM",
+                "0": "NÃO",
+                "Yes": "SIM",
+                "No": "NÃO",
+                "yes": "SIM",
+                "no": "NÃO"
+            }).fillna("NÃO")  # Valores nulos ou não mapeados viram "NÃO"
+            
+            # Contar valores únicos após conversão
+            unique_after = df_copy[col].nunique()
+            
+            simplified_count += 1
+            logging.info(f"  {col}: {unique_before} valores únicos → {unique_after} ('SIM'/'NÃO')")
+    
+    if simplified_count > 0:
+        logging.info(f"✅ {simplified_count} colunas booleanas simplificadas para 'SIM'/'NÃO'")
+    else:
+        logging.info("✅ Nenhuma coluna booleana encontrada para simplificar")
+    
+    return df_copy
+
+
 def create_backup_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Cria colunas de backup para debug/auditoria.
@@ -541,12 +660,14 @@ def log_processing_stats(df: pd.DataFrame) -> None:
         for bucket, count in bucket_counts.items():
             logging.info(f"  {bucket}: {count} registros")
     
-    # Estatísticas de datas
+    # Estatísticas de datas (agora incluindo "NÃO DEFINIDO")
     date_columns = ['Data de início', 'Data de entrega', 'Data de conclusão']
     for col in date_columns:
         if col in df.columns:
-            filled_count = df[col].notna().sum()
-            logging.info(f"  {col}: {filled_count}/{total_rows} preenchidas ({filled_count/total_rows*100:.1f}%)")
+            # Contar valores que não são "NÃO DEFINIDO"
+            defined_count = (df[col] != "NÃO DEFINIDO").sum()
+            undefined_count = (df[col] == "NÃO DEFINIDO").sum()
+            logging.info(f"  {col}: {defined_count} definidas, {undefined_count} não definidas ({defined_count/total_rows*100:.1f}% preenchidas)")
     
     # Estatísticas da coluna Atribuído
     if 'Atribuído' in df.columns:
@@ -558,6 +679,14 @@ def log_processing_stats(df: pd.DataFrame) -> None:
         
         if effective_filled < total_rows:
             logging.warning(f"⚠️ {total_rows - effective_filled} registros ainda sem atribuição")
+    
+    # Estatísticas de colunas booleanas
+    boolean_columns = ['É Recorrente', 'Atrasados']
+    for col in boolean_columns:
+        if col in df.columns:
+            sim_count = (df[col] == "SIM").sum()
+            nao_count = (df[col] == "NÃO").sum()
+            logging.info(f"  {col}: {sim_count} SIM, {nao_count} NÃO")
     
     logging.info(f"Total de registros processados: {total_rows}")
 
@@ -656,10 +785,13 @@ def main(input_path: Path, output_dir: Path) -> Optional[Path]:
                   start_col='Data de início'
               )
               .pipe(
-                  debug_missing_due,
-                  bucket_col='Bucket',
-                  due_raw_col='Due_raw',
-                  due_parsed_col='Data de entrega'
+                  handle_null_dates
+              )
+              .pipe(
+                  simplify_boolean_columns
+              )
+              .pipe(
+                  clean_backup_columns
               ))
         
         # 8. Estatísticas e logs
